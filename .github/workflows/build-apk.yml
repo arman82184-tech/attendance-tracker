@@ -38,7 +38,9 @@ jobs:
           pip install --upgrade buildozer cython virtualenv
 
       - name: Build debug APK
-        run: buildozer -v android debug
+        run: |
+          set -o pipefail
+          buildozer -v android debug 2>&1 | tee build.log
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -47,11 +49,15 @@ jobs:
           path: bin/*.apk
           if-no-files-found: error
 
-      # If the build fails, keep the log so it can be inspected
-      - name: Upload build log on failure
+      # ---- only runs when the build fails ----
+      - name: Show the end of the build log
+        if: failure()
+        run: tail -n 80 build.log || true
+
+      - name: Upload full build log
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: buildozer-log
-          path: .buildozer/logs
+          name: build-log
+          path: build.log
           if-no-files-found: ignore
