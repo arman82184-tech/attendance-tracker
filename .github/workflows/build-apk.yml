@@ -7,20 +7,51 @@ on:
 jobs:
   build-android:
     name: Build for Android
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build with Buildozer
-        uses: ArtemSBulgakov/buildozer-action@v1
-        id: buildozer
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          buildozer_version: stable
+          python-version: "3.11"
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git zip unzip autoconf automake libtool \
+            libltdl-dev pkg-config zlib1g-dev libncurses-dev cmake \
+            libffi-dev libssl-dev build-essential
+
+      - name: Install Buildozer
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade buildozer cython virtualenv
+
+      - name: Build debug APK
+        run: buildozer -v android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: attendance-tracker-apk
-          path: ${{ steps.buildozer.outputs.filename }}
+          path: bin/*.apk
+          if-no-files-found: error
+
+      # If the build fails, keep the log so it can be inspected
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buildozer-log
+          path: .buildozer/logs
+          if-no-files-found: ignore
