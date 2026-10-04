@@ -1,0 +1,844 @@
+<HomeScreen>:
+    md_bg_color: self.theme_cls.backgroundColor
+
+    MDBoxLayout:
+        orientation: "vertical"
+
+        MDTopAppBar:
+            type: "small"
+            size_hint_y: None
+            height: "56dp"
+
+            MDTopAppBarTitle:
+                text: "Attendance Tracker"
+
+        ScrollView:
+
+            MDBoxLayout:
+                orientation: "vertical"
+    
+                spacing: "15dp"
+                padding: "20dp"
+    
+                size_hint_y: None
+                height: self.minimum_height
+    
+    
+                MDLabel:
+                    text: "Overall Attendance"
+                    halign: "center"
+                    adaptive_height: True
+                    font_size: "22sp"
+    
+    
+                MDLabel:
+                    id: overall_attendance
+                    text: "0.00%"
+                    halign: "center"
+                    adaptive_height: True
+                    font_size: "48sp"
+    
+    
+                MDLabel:
+                    id: overall_status
+                    text: "No attendance records yet."
+                    halign: "center"
+                    adaptive_height: True
+                    font_size: "17sp"
+                    text_size: self.width, None
+    
+    
+                MDLinearProgressIndicator:
+                    id: overall_progress
+                    value: 0
+                    type: "determinate"
+                    indicator_color: 0.5, 0.5, 0.5, 1
+                    size_hint_y: None
+                    height: "8dp"
+    
+    
+                MDBoxLayout:
+                    orientation: "horizontal"
+    
+                    adaptive_height: True
+                    spacing: "10dp"
+    
+    
+                    MDLabel:
+                        id: total_classes
+                        text: "Total Classes: 0"
+                        halign: "center"
+                        adaptive_height: True
+    
+    
+                    MDLabel:
+                        id: present_classes
+                        text: "Present: 0"
+                        halign: "center"
+                        adaptive_height: True
+    
+    
+                    MDLabel:
+                        id: absent_classes
+                        text: "Absent: 0"
+                        halign: "center"
+                        adaptive_height: True
+    
+    
+                MDBoxLayout:
+                    orientation: "horizontal"
+                    adaptive_height: True
+                    spacing: "10dp"
+    
+    
+                    MDLabel:
+                        text: "My Subjects"
+                        font_size: "22sp"
+                        adaptive_height: True
+    
+    
+                    Widget:
+    
+    
+                    MDButton:
+                        style: "filled"
+                        on_release:
+                            root.manager.current = "add_subject"
+    
+                        MDButtonText:
+                            text: "+ Add Subject"
+    
+    
+                MDBoxLayout:
+                    id: subject_container
+    
+                    orientation: "vertical"
+                    spacing: "10dp"
+    
+                    size_hint_y: None
+                    height: self.minimum_height
+    
+    
+                Widget:
+                    size_hint_y: None
+                    height: "30dp"
+    
+
+
+<AddSubjectScreen>:
+
+    md_bg_color: self.theme_cls.backgroundColor
+
+
+    MDTopAppBar:
+        type: "small"
+        pos_hint: {"top": 1}
+    
+        MDTopAppBarTitle:
+            text: "Add Subject"
+
+
+    MDBoxLayout:
+        orientation: "vertical"
+
+        spacing: "20dp"
+        padding: "30dp"
+
+        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+        size_hint_x: 0.9
+        size_hint_y: None
+        height: self.minimum_height
+
+
+        MDLabel:
+            text: "Add a New Subject"
+            halign: "center"
+            font_size: "28sp"
+            adaptive_height: True
+
+
+        MDTextField:
+            id: subject_name
+
+            MDTextFieldHintText:
+                text: "Subject Name"
+
+
+        MDTextField:
+            id: subject_code
+
+            MDTextFieldHintText:
+                text: "Subject Code"
+
+
+        MDTextField:
+            id: professor_name
+
+            MDTextFieldHintText:
+                text: "Professor Name"
+
+
+        MDLabel:
+            id: error_label
+
+            text: ""
+            halign: "center"
+            theme_text_color: "Error"
+            adaptive_height: True
+
+
+        MDButton:
+            style: "filled"
+            pos_hint: {"center_x": 0.5}
+            on_release:
+                root.save_subject()
+
+            MDButtonText:
+                text: "Add Subject"
+
+        MDButton:
+            style: "text"
+            pos_hint: {"center_x": 0.5}
+            on_release:
+                root.go_back()
+
+            MDButtonText:
+                text: "Back to Home"
+
+
+<SubjectDetailsScreen>:
+
+    md_bg_color: self.theme_cls.backgroundColor
+
+    MDBoxLayout:
+        orientation: "vertical"
+
+        MDTopAppBar:
+            type: "small"
+            pos_hint: {"top": 1}
+    
+            MDTopAppBarTitle:
+                text: "Subject Details"
+    
+    
+        ScrollView:
+    
+            MDBoxLayout:
+                orientation: "vertical"
+    
+                spacing: "20dp"
+                padding: "25dp"
+    
+                size_hint_y: None
+                height: self.minimum_height
+    
+    
+                MDLabel:
+                    id: subject_name
+    
+                    text: "Subject Name"
+    
+                    halign: "center"
+    
+                    font_size: "28sp"
+    
+                    adaptive_height: True
+    
+    
+                MDLabel:
+                    id: subject_code
+    
+                    text: "Subject Code"
+    
+                    halign: "center"
+    
+                    font_size: "17sp"
+    
+                    adaptive_height: True
+    
+    
+                MDLabel:
+                    id: professor_name
+    
+                    text: "Professor"
+    
+                    halign: "center"
+    
+                    font_size: "16sp"
+    
+                    adaptive_height: True
+    
+    
+                MDLabel:
+                    text: "Attendance"
+    
+                    halign: "center"
+    
+                    font_size: "22sp"
+    
+                    adaptive_height: True
+    
+    
+                MDLabel:
+                    id: attendance_percentage
+    
+                    text: "0.00%"
+    
+                    halign: "center"
+    
+                    font_size: "48sp"
+    
+                    adaptive_height: True
+    
+    
+                MDLabel:
+                
+                    id: target_message
+                
+                    text: ""
+                
+                    halign: "center"
+                
+                    adaptive_height: True
+                
+                    font_size: "17sp"
+                
+                    text_size: self.width, None
+    
+    
+                MDBoxLayout:
+    
+                    orientation: "horizontal"
+    
+                    spacing: "10dp"
+    
+                    adaptive_height: True
+    
+    
+                    MDLabel:
+                        id: present_classes
+    
+                        text: "Present: 0"
+    
+                        halign: "center"
+    
+                        adaptive_height: True
+    
+    
+                    MDLabel:
+                        id: absent_classes
+    
+                        text: "Absent: 0"
+    
+                        halign: "center"
+    
+                        adaptive_height: True
+    
+    
+                    MDLabel:
+                        id: total_classes
+    
+                        text: "Total: 0"
+    
+                        halign: "center"
+    
+                        adaptive_height: True
+    
+    
+                MDButton:
+                
+                    style: "filled"
+                
+                    pos_hint: {"center_x": 0.5}
+                
+                    on_release:
+                        root.open_mark_attendance()
+                
+                    MDButtonText:
+                
+                        text: "+ Mark Attendance"
+    
+                
+                MDLabel:
+                
+                    text: "Attendance History"
+                
+                    font_size: "22sp"
+                
+                    adaptive_height: True
+                
+                
+                MDBoxLayout:
+                
+                    id: attendance_history
+                
+                    orientation: "vertical"
+                
+                    spacing: "10dp"
+                
+                    size_hint_y: None
+                
+                    height: self.minimum_height
+    
+    
+                MDButton:
+                    style: "outlined"
+                    on_release:
+                        root.open_monthly_attendance()
+                    
+                    MDButtonText:
+                        text: "Monthly Attendance"
+    
+    
+                MDButton:
+    
+                    style: "text"
+    
+                    pos_hint: {"center_x": 0.5}
+    
+                    on_release:
+                        root.go_back()
+    
+    
+                    MDButtonText:
+    
+                        text: "Back to Home"
+
+
+<MarkAttendanceScreen>:
+    md_bg_color: self.theme_cls.backgroundColor
+
+    MDBoxLayout:
+        orientation: "vertical"
+
+        MDTopAppBar:
+            type: "small"
+            size_hint_y: None
+            height: "56dp"
+
+            MDTopAppBarTitle:
+                text: "Mark Attendance"
+
+        ScrollView:
+
+            MDBoxLayout:
+        
+                orientation: "vertical"
+        
+                spacing: "20dp"
+        
+                padding: "30dp"
+        
+                size_hint_x: 1
+        
+                size_hint_y: None
+        
+                height: self.minimum_height
+        
+        
+                MDLabel:
+        
+                    text: "Mark Attendance"
+        
+                    halign: "center"
+        
+                    font_size: "28sp"
+        
+                    adaptive_height: True
+        
+        
+                MDTextField:
+        
+                    id: date_field
+        
+                    MDTextFieldHintText:
+        
+                        text: "Date (YYYY-MM-DD)"
+        
+        
+                MDTextField:
+        
+                    id: time_field
+        
+                    MDTextFieldHintText:
+        
+                        text: "Time (HH:MM)"
+        
+        
+                MDLabel:
+        
+                    id: status_label
+        
+                    text: "Status: Not selected"
+        
+                    halign: "center"
+        
+                    adaptive_height: True
+        
+                    font_size: "18sp"
+        
+        
+                MDBoxLayout:
+        
+                    orientation: "horizontal"
+        
+                    spacing: "15dp"
+        
+                    adaptive_height: True
+        
+                    pos_hint: {"center_x": 0.5}
+        
+        
+                    MDButton:
+        
+                        style: "filled"
+        
+                        on_release:
+        
+                            root.set_status("Present")
+        
+        
+                        MDButtonText:
+        
+                            text: "Present"
+        
+        
+                    MDButton:
+        
+                        style: "outlined"
+        
+                        on_release:
+        
+                            root.set_status("Absent")
+        
+        
+                        MDButtonText:
+        
+                            text: "Absent"
+        
+        
+                MDLabel:
+        
+                    id: error_label
+        
+                    text: ""
+        
+                    halign: "center"
+        
+                    adaptive_height: True
+        
+                    theme_text_color: "Error"
+        
+        
+                MDButton:
+        
+                    style: "filled"
+        
+                    pos_hint: {"center_x": 0.5}
+        
+                    on_release:
+        
+                        root.save_attendance()
+        
+        
+                    MDButtonText:
+        
+                        text: "Save Attendance"
+        
+        
+                MDButton:
+        
+                    style: "text"
+        
+                    pos_hint: {"center_x": 0.5}
+        
+                    on_release:
+        
+                        root.go_back()
+        
+        
+                    MDButtonText:
+        
+                        text: "Back"
+        
+
+<EditAttendanceScreen>:
+    md_bg_color: self.theme_cls.backgroundColor
+
+    MDBoxLayout:
+        orientation: "vertical"
+
+        MDTopAppBar:
+            type: "small"
+            size_hint_y: None
+            height: "56dp"
+
+            MDTopAppBarTitle:
+                text: "Edit Attendance"
+
+        ScrollView:
+        
+            MDBoxLayout:
+        
+                orientation: "vertical"
+        
+                spacing: "20dp"
+
+                padding: "30dp"
+        
+                size_hint_x: 1
+        
+                size_hint_y: None
+        
+                height: self.minimum_height
+        
+        
+                MDLabel:
+        
+                    text: "Edit Attendance"
+        
+                    halign: "center"
+        
+                    font_size: "28sp"
+        
+                    adaptive_height: True
+        
+        
+                MDTextField:
+        
+                    id: date_field
+        
+        
+                    MDTextFieldHintText:
+        
+                        text: "Date (YYYY-MM-DD)"
+        
+        
+                MDTextField:
+        
+                    id: time_field
+        
+        
+                    MDTextFieldHintText:
+        
+                        text: "Time (HH:MM)"
+        
+        
+                MDLabel:
+        
+                    id: status_label
+        
+                    text: "Status: Not selected"
+        
+                    halign: "center"
+        
+                    adaptive_height: True
+        
+                    font_size: "18sp"
+        
+        
+                MDBoxLayout:
+        
+                    orientation: "horizontal"
+        
+                    spacing: "15dp"
+        
+                    adaptive_height: True
+        
+                    pos_hint: {"center_x": 0.5}
+        
+        
+                    MDButton:
+        
+                        style: "filled"
+        
+                        on_release:
+        
+                            root.set_status("Present")
+        
+        
+                        MDButtonText:
+        
+                            text: "Present"
+        
+        
+                    MDButton:
+        
+                        style: "outlined"
+        
+                        on_release:
+        
+                            root.set_status("Absent")
+        
+        
+                        MDButtonText:
+        
+                            text: "Absent"
+        
+        
+                MDLabel:
+        
+                    id: error_label
+        
+                    text: ""
+        
+                    halign: "center"
+        
+                    adaptive_height: True
+        
+                    theme_text_color: "Error"
+        
+        
+                MDButton:
+        
+                    style: "filled"
+        
+                    pos_hint: {"center_x": 0.5}
+        
+                    on_release:
+        
+                        root.save_changes()
+        
+        
+                    MDButtonText:
+        
+                        text: "Save Changes"
+        
+        
+                MDButton:
+        
+                    style: "text"
+        
+                    pos_hint: {"center_x": 0.5}
+        
+                    on_release:
+        
+                        root.go_back()
+        
+        
+                    MDButtonText:
+        
+                        text: "Back"
+        
+        
+        
+<MonthlyAttendanceScreen>:
+    md_bg_color: self.theme_cls.backgroundColor
+
+    MDBoxLayout:
+        orientation: "vertical"
+
+        # Header
+        MDBoxLayout:
+            orientation: "horizontal"
+            size_hint_y: None
+            height: "56dp"
+            padding: "5dp"
+            spacing: "5dp"
+
+            MDIconButton:
+                icon: "arrow-left"
+                on_release: root.go_back()
+
+            MDLabel:
+                text: "Monthly Attendance"
+                font_size: "20sp"
+                bold: True
+                valign: "center"
+
+            Widget:
+
+            MDButton:
+                style: "text"
+                on_release: root.previous_month()
+
+                MDButtonText:
+                    text: "PREV"
+
+            MDButton:
+                style: "text"
+                on_release: root.next_month()
+
+                MDButtonText:
+                    text: "NEXT"
+
+        # Scrollable calendar area
+        ScrollView:
+
+            MDBoxLayout:
+                orientation: "vertical"
+                spacing: "15dp"
+                padding: "20dp"
+                size_hint_y: None
+                height: self.minimum_height
+
+                # Month title
+                MDLabel:
+                    id: month_title
+                    text: "September 2026"
+                    halign: "center"
+                    font_size: "24sp"
+                    bold: True
+                    size_hint_y: None
+                    height: "40dp"
+
+                # Weekday names
+                MDGridLayout:
+                    cols: 7
+                    spacing: "5dp"
+                    size_hint_y: None
+                    height: "35dp"
+
+                    MDLabel:
+                        text: "MON"
+                        halign: "center"
+                        valign: "center"
+                        bold: True
+
+                    MDLabel:
+                        text: "TUE"
+                        halign: "center"
+                        valign: "center"
+                        bold: True
+
+                    MDLabel:
+                        text: "WED"
+                        halign: "center"
+                        valign: "center"
+                        bold: True
+
+                    MDLabel:
+                        text: "THU"
+                        halign: "center"
+                        valign: "center"
+                        bold: True
+
+                    MDLabel:
+                        text: "FRI"
+                        halign: "center"
+                        valign: "center"
+                        bold: True
+
+                    MDLabel:
+                        text: "SAT"
+                        halign: "center"
+                        valign: "center"
+                        bold: True
+
+                    MDLabel:
+                        text: "SUN"
+                        halign: "center"
+                        valign: "center"
+                        bold: True
+
+                # Calendar dates
+                MDGridLayout:
+                    id: calendar_grid
+                    cols: 7
+                    spacing: "5dp"
+                    padding: "0dp"
+                    size_hint_y: None
+                    height: self.minimum_height
+                    row_default_height: "70dp"
+                    row_force_default: True

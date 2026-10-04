@@ -1,0 +1,47 @@
+from kivymd.uix.screen import MDScreen
+
+from app.services.subject_service import add_subject
+
+
+class AddSubjectScreen(MDScreen):
+
+    def save_subject(self):
+        """Save the entered subject to the database."""
+
+        subject_name = self.ids.subject_name.text.strip()
+        subject_code = self.ids.subject_code.text.strip()
+        professor_name = self.ids.professor_name.text.strip()
+
+        # Check for empty fields
+        if not subject_name or not subject_code or not professor_name:
+            self.ids.error_label.text = "Please fill in all fields."
+            return
+
+        try:
+            add_subject(
+                subject_name,
+                subject_code,
+                professor_name
+            )
+
+        except Exception as error:
+            # This will mainly catch duplicate subject codes
+            self.ids.error_label.text = (
+                "Subject code already exists."
+            )
+            print("Error adding subject:", error)
+            return
+
+        # Clear fields
+        self.ids.subject_name.text = ""
+        self.ids.subject_code.text = ""
+        self.ids.professor_name.text = ""
+        self.ids.error_label.text = ""
+
+        # Go back to home screen
+        self.manager.current = "home"
+
+    def go_back(self):
+        """Return to the home screen."""
+
+        self.manager.current = "home"
