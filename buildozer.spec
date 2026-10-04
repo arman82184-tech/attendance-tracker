@@ -22,7 +22,8 @@ fullscreen = 0
 
 # No permissions needed: the database is kept in the app's private storage.
 android.accept_sdk_license = True
-android.archs = arm64-v8a, armeabi-v7a
+# 64-bit only: all modern phones. Halves build time/memory/disk use.
+android.archs = arm64-v8a
 
 [buildozer]
 
