@@ -1,9 +1,15 @@
+import sqlite3
+
 from kivymd.uix.screen import MDScreen
 
 from app.services.subject_service import add_subject
 
 
 class AddSubjectScreen(MDScreen):
+
+    def on_pre_enter(self):
+        """Start with a clean error message each time."""
+        self.ids.error_label.text = ""
 
     def save_subject(self):
         """Save the entered subject to the database."""
@@ -18,17 +24,16 @@ class AddSubjectScreen(MDScreen):
             return
 
         try:
-            add_subject(
-                subject_name,
-                subject_code,
-                professor_name
-            )
+            add_subject(subject_name, subject_code, professor_name)
 
-        except Exception as error:
-            # This will mainly catch duplicate subject codes
-            self.ids.error_label.text = (
-                "Subject code already exists."
-            )
+        except sqlite3.IntegrityError:
+            # subject_code is UNIQUE
+            self.ids.error_label.text = "Subject code already exists."
+            return
+
+        except sqlite3.Error as error:
+            # Any other database problem: don't mislabel it as a duplicate
+            self.ids.error_label.text = "Could not save the subject."
             print("Error adding subject:", error)
             return
 

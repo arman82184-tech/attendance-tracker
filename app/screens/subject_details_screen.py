@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.card import MDCard
 from kivymd.uix.label import MDLabel
@@ -13,11 +11,14 @@ from kivy.metrics import dp
 from app.services.subject_service import get_subject
 from app.services.attendance_service import get_attendance_for_subject
 from app.services.attendance_service import delete_attendance
+from app.config import MIN_ATTENDANCE
 from app.utils.calculations import (
     calculate_subject_attendance,
     classes_needed_to_reach_target,
     classes_can_miss,
 )
+from app.utils.formatting import classes_text
+from app.utils.time_utils import display_time
 
 
 class SubjectDetailsScreen(MDScreen):
@@ -41,31 +42,29 @@ class SubjectDetailsScreen(MDScreen):
 
         percentage = stats["percentage"]
         
-        if percentage < 75.0:
-        
+        minimum = f"{MIN_ATTENDANCE:.0f}%"
+
+        if stats["total"] == 0:
+            self.ids.target_message.text = "No attendance records yet."
+
+        elif percentage < MIN_ATTENDANCE:
             needed = classes_needed_to_reach_target(
-                stats["present"],
-                stats["total"]
+                stats["present"], stats["total"], MIN_ATTENDANCE
             )
-        
             self.ids.target_message.text = (
-                f"Below 75%\n"
-                f"Attend the next {needed} classes "
-                f"to reach 75%."
+                f"Below {minimum}\n"
+                f"Attend the next {classes_text(needed)} "
+                f"to reach {minimum}."
             )
-        
+
         else:
-        
             can_miss = classes_can_miss(
-                stats["present"],
-                stats["total"]
+                stats["present"], stats["total"], MIN_ATTENDANCE
             )
-        
             self.ids.target_message.text = (
                 f"Attendance is safe\n"
-                f"You can miss {can_miss} more "
-                f"class{'es' if can_miss != 1 else ''} "
-                f"and stay at 75%."
+                f"You can miss {classes_text(can_miss)} more "
+                f"and stay at {minimum}."
             )
 
         self.ids.subject_name.text = (
@@ -147,16 +146,8 @@ class SubjectDetailsScreen(MDScreen):
             status_color = (0.9, 0.2, 0.2, 1)
 
 
-        try:
-            formatted_time = datetime.strptime(
-                record["time"],
-                "%H:%M"
-            ).strftime("%I:%M %p")
-        
-        except ValueError:
-            # Already in 12-hour format
-            formatted_time = record["time"]
-        
+        formatted_time = display_time(record["time"])
+
         info_label = MDLabel(
             text=(
                 f'{record["date"]}    '
@@ -297,12 +288,6 @@ class SubjectDetailsScreen(MDScreen):
         )
     
         self.delete_popup.open()
-
-    def close_dialog(self):
-        """Close confirmation dialog."""
-
-        if hasattr(self, "dialog"):
-            self.dialog.dismiss()
 
     def delete_record(self):
         """Delete the selected attendance record."""

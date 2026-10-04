@@ -5,25 +5,63 @@ from kivymd.uix.label import MDLabel
 from kivymd.uix.card import MDCard
 from kivymd.uix.boxlayout import MDBoxLayout
 
+from kivy.graphics import Color, Rectangle
 from kivy.metrics import dp
-from kivy.uix.button import Button
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.scrollview import ScrollView
 
+from kivymd.uix.button import MDButton, MDButtonText
+
+from app.config import DATE_FORMAT
 from app.services.attendance_service import get_attendance_for_subject
+from app.utils.time_utils import display_time
 
+
+
+class CalendarOverlay(FloatLayout):
+    """Full-screen layer that swallows touches so the calendar behind
+    it cannot be clicked while a day dialog is open."""
+
+    def on_touch_down(self, touch):
+        super().on_touch_down(touch)   # let the CLOSE button work
+        return True
+
+    def on_touch_move(self, touch):
+        super().on_touch_move(touch)
+        return True
+
+    def on_touch_up(self, touch):
+        super().on_touch_up(touch)
+        return True
 
 
 class CalendarDayCard(MDCard):
+
     def __init__(self, day=None, screen=None, **kwargs):
         super().__init__(**kwargs)
         self.day = day
         self.screen = screen
 
-    def on_touch_up(self, touch):
+    def on_touch_down(self, touch):
         if self.collide_point(*touch.pos):
-            if self.day is not None and self.screen is not None:
-                self.screen.show_day_details(self.day)
-    
+            touch.ud["day_card_start"] = (id(self), touch.pos)
+        return super().on_touch_down(touch)
+
+    def on_touch_up(self, touch):
+        started = touch.ud.get("day_card_start")
+        tap_distance = dp(10)
+
+        if (
+            started
+            and started[0] == id(self)
+            and self.collide_point(*touch.pos)
+            and abs(touch.pos[0] - started[1][0]) < tap_distance
+            and abs(touch.pos[1] - started[1][1]) < tap_distance
+            and self.day is not None
+            and self.screen is not None
+        ):
+            self.screen.show_day_details(self.day)
+
         return super().on_touch_up(touch)
 
 
@@ -31,6 +69,7 @@ class MonthlyAttendanceScreen(MDScreen):
     subject_id = None
     month = None
     year = None
+    _overlay = None
 
     def show_month(self, subject_id, month=None, year=None):
         if month is None:
@@ -187,145 +226,157 @@ class MonthlyAttendanceScreen(MDScreen):
 
 
     def show_day_details(self, day):
-        date_string = datetime(
-            self.year,
-            self.month,
-            day
-        ).strftime("%Y-%m-%d")
-    
-        records = get_attendance_for_subject(self.subject_id)
-    
-        day_records = []
-    
-        for record in records:
-            if record["date"] == date_string:
-                day_records.append(record)
-    
-        # Create full-screen overlay
-        overlay = FloatLayout(
-            size_hint=(1, 1)
+        """Show a dialog listing every record for the tapped day."""
+
+        day_date = datetime(self.year, self.month, day)
+        date_string = day_date.strftime(DATE_FORMAT)
+
+        day_records = [
+            record
+            for record in get_attendance_for_subject(self.subject_id)
+            if record["date"] == date_string
+        ]
+        day_records.sort(key=lambda record: record["time"])
+
+        # Only one dialog at a time
+        self.close_day_details()
+
+        # Full-screen layer that also dims the calendar behind the dialog
+        overlay = CalendarOverlay(size_hint=(1, 1))
+        self._overlay = overlay
+
+        with overlay.canvas.before:
+            Color(0, 0, 0, 0.45)
+            dim = Rectangle(pos=overlay.pos, size=overlay.size)
+
+        overlay.bind(
+            pos=lambda widget, value: setattr(dim, "pos", value),
+            size=lambda widget, value: setattr(dim, "size", value),
         )
-    
-        # Background card
+
+        # The dialog: title + scrollable records + CLOSE, all in ONE card,
+        # so nothing can overlap (the old CLOSE button floated on top of
+        # the last record).
         dialog_card = MDCard(
-            size_hint=(0.85, 0.7),
-            pos_hint={"center_x": 0.5, "center_y": 0.5},
             orientation="vertical",
+            size_hint=(0.85, None),
+            pos_hint={"center_x": 0.5, "center_y": 0.5},
             padding=dp(15),
             spacing=dp(10),
             elevation=8,
             radius=[dp(12)],
         )
-    
-        # Title
-        title_label = MDLabel(
-            text=datetime(
-                self.year,
-                self.month,
-                day
-            ).strftime("%B %d, %Y"),
-            halign="center",
-            font_size="20sp",
-            bold=True,
-            size_hint_y=None,
-            height=dp(40),
+
+        # Card grows with the number of records, up to 80% of the screen.
+        row_height = dp(55)
+        row_spacing = dp(8)
+        rows = max(len(day_records), 1)
+        wanted_height = (
+            dp(15) * 2          # card padding
+            + dp(40)            # title
+            + dp(40)            # CLOSE button
+            + dp(10) * 2        # spacing between the three parts
+            + rows * (row_height + row_spacing)
         )
-    
-        dialog_card.add_widget(title_label)
-    
-        # Attendance records
-        if not day_records:
-    
-            message = MDLabel(
-                text="No attendance recorded for this day.",
+
+        def fit_height(*args):
+            dialog_card.height = min(wanted_height, overlay.height * 0.8)
+
+        overlay.bind(height=fit_height)
+        fit_height()
+
+        # Title
+        dialog_card.add_widget(
+            MDLabel(
+                text=day_date.strftime("%B %d, %Y"),
                 halign="center",
-                valign="center",
+                font_size="20sp",
+                bold=True,
+                size_hint_y=None,
+                height=dp(40),
             )
-    
-            dialog_card.add_widget(message)
-    
-        else:
-    
-            day_records.sort(
-                key=lambda record: record["time"]
-            )
-    
-            for record in day_records:
-    
-                try:
-                    formatted_time = datetime.strptime(
-                        record["time"],
-                        "%H:%M"
-                    ).strftime("%I:%M %p")
-    
-                except ValueError:
-                    formatted_time = record["time"]
-    
-                if record["status"] == "Present":
-                    status_color = (0.2, 0.7, 0.3, 1)
-                else:
-                    status_color = (0.9, 0.2, 0.2, 1)
-    
-                row = MDCard(
-                    orientation="horizontal",
-                    size_hint_y=None,
-                    height=dp(55),
-                    padding=dp(10),
-                    elevation=1,
-                    radius=[dp(8)],
+        )
+
+        # Scrollable list of records (takes all the remaining space)
+        records_box = MDBoxLayout(
+            orientation="vertical",
+            spacing=row_spacing,
+            adaptive_height=True,
+        )
+
+        if not day_records:
+            records_box.add_widget(
+                MDLabel(
+                    text="No attendance recorded for this day.",
+                    halign="center",
+                    adaptive_height=True,
                 )
-    
-                time_label = MDLabel(
-                    text=formatted_time,
+            )
+
+        for record in day_records:
+            if record["status"] == "Present":
+                status_color = (0.2, 0.7, 0.3, 1)
+            else:
+                status_color = (0.9, 0.2, 0.2, 1)
+
+            row = MDCard(
+                orientation="horizontal",
+                size_hint_y=None,
+                height=row_height,
+                padding=dp(10),
+                elevation=1,
+                radius=[dp(8)],
+            )
+
+            row.add_widget(
+                MDLabel(
+                    text=display_time(record["time"]),
                     halign="left",
-                    valign="center",
                     font_size="16sp",
                 )
-    
-                status_label = MDLabel(
+            )
+
+            row.add_widget(
+                MDLabel(
                     text=record["status"],
                     halign="right",
-                    valign="center",
                     font_size="16sp",
                     bold=True,
                     theme_text_color="Custom",
                     text_color=status_color,
                 )
-    
-                row.add_widget(time_label)
-                row.add_widget(status_label)
-    
-                dialog_card.add_widget(row)
-    
-        # Add the dialog card first
+            )
+
+            records_box.add_widget(row)
+
+        scroll = ScrollView(size_hint=(1, 1))
+        scroll.add_widget(records_box)
+        dialog_card.add_widget(scroll)
+
+        # CLOSE button, inside the card, below the list
+        close_button = MDButton(
+            style="filled",
+            pos_hint={"center_x": 0.5},
+        )
+        close_button.add_widget(MDButtonText(text="Close"))
+        close_button.bind(on_release=lambda instance: self.close_day_details())
+        dialog_card.add_widget(close_button)
+
         overlay.add_widget(dialog_card)
-        
-        # Close button
-        close_button = Button(
-            text="CLOSE",
-            size_hint=(0.75, None),
-            height=dp(45),
-            pos_hint={
-                "center_x": 0.5,
-                "center_y": 0.20,
-            },
-        )
-        
-        # Add button directly to the overlay
-        # so the MDCard cannot interfere with its touch.
-        overlay.add_widget(close_button)
-        
-        
-        def close_overlay(instance):
-            self.remove_widget(overlay)
-        
-        
-        close_button.bind(
-            on_release=close_overlay
-        )
-    
-        # Add overlay directly to the screen
         self.add_widget(overlay)
+
+    def close_day_details(self):
+        """Remove the day dialog if one is open."""
+        overlay = getattr(self, "_overlay", None)
+
+        if overlay is not None and overlay.parent is not None:
+            self.remove_widget(overlay)
+
+        self._overlay = None
+
+    def on_leave(self, *args):
+        """Don't leave a stale dialog behind when navigating away."""
+        self.close_day_details()
 
     def previous_month(self):
         if self.month == 1:

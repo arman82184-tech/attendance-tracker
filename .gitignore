@@ -30,7 +30,7 @@ MANIFEST
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
-*.spec
+# (the old '*.spec' rule also hid buildozer.spec, which you need to commit)
 
 # Installer logs
 pip-log.txt
@@ -181,3 +181,10 @@ cython_debug/
 .cursorindexingignore
 
 data/attendance.db
+
+# Buildozer / Android build output
+.buildozer/
+bin/
+
+# Personal attendance data
+data/*.db

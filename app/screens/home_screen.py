@@ -1,6 +1,11 @@
-from kivymd.uix.screen import MDScreen
-from kivymd.uix.progressindicator import MDLinearProgressIndicator
+from kivy.metrics import dp
 
+from kivymd.uix.card import MDCard
+from kivymd.uix.label import MDLabel
+from kivymd.uix.progressindicator import MDLinearProgressIndicator
+from kivymd.uix.screen import MDScreen
+
+from app.config import MIN_ATTENDANCE
 from app.services.subject_service import get_all_subjects
 from app.services.attendance_service import (
     get_all_attendance,
@@ -11,11 +16,16 @@ from app.utils.calculations import (
     classes_needed_to_reach_target,
     classes_can_miss,
 )
+from app.utils.formatting import classes_text
+
+GREY = (0.5, 0.5, 0.5, 1)
+RED = (0.9, 0.2, 0.2, 1)
+GREEN = (0.2, 0.7, 0.3, 1)
 
 
 class HomeScreen(MDScreen):
 
-    MIN_ATTENDANCE = 75.0
+    MIN_ATTENDANCE = MIN_ATTENDANCE
 
     def on_enter(self):
         """Refresh dashboard whenever the screen is opened."""
@@ -24,133 +34,75 @@ class HomeScreen(MDScreen):
     def refresh_dashboard(self):
         """Load and display current attendance information."""
 
-        # Get all attendance records
-        all_records = get_all_attendance()
-
-        # Calculate overall attendance
-        statistics = calculate_subject_attendance(
-            all_records
-        )
-
-        self.ids.overall_attendance.text = (
-            f'{statistics["percentage"]:.2f}%'
-        )
-
+        statistics = calculate_subject_attendance(get_all_attendance())
         percentage = statistics["percentage"]
+        minimum = f"{self.MIN_ATTENDANCE:.0f}%"
 
-        # Set overall progress bar value
+        self.ids.overall_attendance.text = f"{percentage:.2f}%"
         self.ids.overall_progress.value = percentage
-        
-        # Set progress bar color based on attendance
+
         if statistics["total"] == 0:
-            self.ids.overall_progress.indicator_color = (
-                0.5, 0.5, 0.5, 1
-            )
-        
+            colour = GREY
+            message = "No attendance records yet."
         elif percentage < self.MIN_ATTENDANCE:
-            self.ids.overall_progress.indicator_color = (
-                0.9, 0.2, 0.2, 1
-            )
-        
+            colour = RED
+            message = f"WARNING: Overall attendance is below {minimum}"
         else:
-            self.ids.overall_progress.indicator_color = (
-                0.2, 0.7, 0.3, 1
-            )     
+            colour = GREEN
+            message = "OK: Overall attendance is safe"
 
-        self.ids.overall_attendance.text = (
-            f'{statistics["percentage"]:.2f}%'
-        )  
-        
-        if statistics["total"] == 0:
-            self.ids.overall_status.text = "No attendance records yet."
-            self.ids.overall_status.text_color = (0.5, 0.5, 0.5, 1)
-        
-        elif percentage < self.MIN_ATTENDANCE:
-            self.ids.overall_status.text = "WARNING: Overall attendance is below 75%"
-            self.ids.overall_status.text_color = (0.9, 0.2, 0.2, 1)
-        
-        else:
-            self.ids.overall_status.text = "OK: Overall attendance is safe"
-            self.ids.overall_status.text_color = (0.2, 0.7, 0.3, 1)
+        self.ids.overall_progress.indicator_color = colour
+        self.ids.overall_status.text = message
+        self.ids.overall_status.text_color = colour
 
-        self.ids.total_classes.text = (
-            f'Total Classes: {statistics["total"]}'
-        )
+        self.ids.total_classes.text = f'Total Classes: {statistics["total"]}'
+        self.ids.present_classes.text = f'Present: {statistics["present"]}'
+        self.ids.absent_classes.text = f'Absent: {statistics["absent"]}'
 
-        self.ids.present_classes.text = (
-            f'Present: {statistics["present"]}'
-        )
-
-        self.ids.absent_classes.text = (
-            f'Absent: {statistics["absent"]}'
-        )
-
-        # Load subjects
-        subjects = get_all_subjects()
-
-        # Clear old subject entries
+        # Rebuild the subject cards
         self.ids.subject_container.clear_widgets()
 
-        # Add each subject
-        for subject in subjects:
-
-            records = get_attendance_for_subject(
-                subject["id"]
-            )
-
+        for subject in get_all_subjects():
+            # One query per subject (the old code ran it twice)
             stats = calculate_subject_attendance(
-                records
+                get_attendance_for_subject(subject["id"])
             )
-
-            percentage = stats["percentage"]
 
             self.ids.subject_container.add_widget(
-                self.create_subject_label(
-                    subject,
-                    percentage
-                )
+                self.create_subject_card(subject, stats)
             )
 
-    def create_subject_label(self, subject, percentage):
+    def create_subject_card(self, subject, stats):
         """Create a clickable subject card."""
-    
-        from kivymd.uix.card import MDCard
-        from kivymd.uix.label import MDLabel
-        from kivymd.uix.progressindicator import MDLinearProgressIndicator
-        from kivy.metrics import dp
-    
-        records = get_attendance_for_subject(subject["id"])
-    
-        stats = calculate_subject_attendance(records)
-    
+
+        percentage = stats["percentage"]
+        minimum = f"{self.MIN_ATTENDANCE:.0f}%"
+
         if stats["total"] == 0:
             status = "NO DATA"
+            colour = GREY
             target_text = "No attendance records yet."
-        
+
         elif percentage < self.MIN_ATTENDANCE:
             status = "WARNING"
+            colour = RED
             needed = classes_needed_to_reach_target(
-                stats["present"],
-                stats["total"]
+                stats["present"], stats["total"], self.MIN_ATTENDANCE
             )
             target_text = (
-                f"Attend next {needed} class"
-                f"{'es' if needed != 1 else ''} "
-                f"to reach 75%"
+                f"Attend next {classes_text(needed)} to reach {minimum}"
             )
-        
+
         else:
             status = "OK"
+            colour = GREEN
             can_miss = classes_can_miss(
-                stats["present"],
-                stats["total"]
+                stats["present"], stats["total"], self.MIN_ATTENDANCE
             )
             target_text = (
-                f"Can miss {can_miss} class"
-                f"{'es' if can_miss != 1 else ''} "
-                f"and stay at 75%"
+                f"Can miss {classes_text(can_miss)} and stay at {minimum}"
             )
-    
+
         card = MDCard(
             orientation="vertical",
             padding=dp(15),
@@ -159,38 +111,28 @@ class HomeScreen(MDScreen):
             height=dp(190),
             ripple_behavior=True,
         )
-    
+
         name_label = MDLabel(
-            text=(
-                f"{status}  {subject['subject_name']}"
-            ),
+            text=f"{status}  {subject['subject_name']}",
             font_size="19sp",
             bold=True,
             adaptive_height=True,
         )
-    
+
         code_label = MDLabel(
-            text=(
-                f"{subject['subject_code']}  •  "
-                f"{subject['professor_name']}"
-            ),
+            text=f"{subject['subject_code']}  •  {subject['professor_name']}",
             font_size="14sp",
             adaptive_height=True,
         )
 
-        if percentage < self.MIN_ATTENDANCE:
-            progress_color = (0.9, 0.2, 0.2, 1)
-        else:
-            progress_color = (0.2, 0.7, 0.3, 1)
-        
         progress_bar = MDLinearProgressIndicator(
             value=percentage,
             type="determinate",
-            indicator_color=progress_color,
+            indicator_color=colour,
             size_hint_y=None,
             height=dp(8),
         )
-    
+
         attendance_label = MDLabel(
             text=(
                 f"Present: {stats['present']}    "
@@ -201,37 +143,33 @@ class HomeScreen(MDScreen):
             font_size="15sp",
             adaptive_height=True,
         )
-        
+
         target_label = MDLabel(
-            text=f"Target: {self.MIN_ATTENDANCE:.0f}%\n{target_text}",
+            text=f"Target: {minimum}\n{target_text}",
             font_size="14sp",
             adaptive_height=True,
             halign="center",
-            text_size=(None, None),
         )
-    
+        # (the old text_size=(None, None) switched centering off)
+        target_label.bind(
+            width=lambda label, width: setattr(label, "text_size", (width, None))
+        )
+
         card.add_widget(name_label)
         card.add_widget(code_label)
         card.add_widget(progress_bar)
         card.add_widget(attendance_label)
         card.add_widget(target_label)
-    
-        card.bind(
-            on_release=lambda instance: (
-                self.open_subject(subject["id"])
-            )
-        )
-    
-        return card
 
+        subject_id = subject["id"]
+        card.bind(on_release=lambda instance: self.open_subject(subject_id))
+
+        return card
 
     def open_subject(self, subject_id):
         """Open the details screen for a subject."""
-    
-        details_screen = self.manager.get_screen(
-            "subject_details"
-        )
-    
+
+        details_screen = self.manager.get_screen("subject_details")
         details_screen.show_subject(subject_id)
-    
+
         self.manager.current = "subject_details"
